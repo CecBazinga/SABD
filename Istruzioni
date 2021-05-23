@@ -1,0 +1,39 @@
+Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
+
+ - Installare IntelliJ IDEA con JDK 16.0.1
+
+ $ sudo apt-get update
+ $ sudo apt install vim
+ $ sudo apt install git
+ 
+ - Installare Containerd, Docker CE CLI e Docker CE (Engine) da: https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/
+   (Per installarli è necessario fare $ sudo dpkg -i path/to/package nell'ordine specificato sopra.)
+ 
+ - [OPZIONALE] $ sudo docker run hello-world per testare docker
+
+
+ ****[SETUP DI HADOOP]****
+ 
+ 	- Scaricare gli script di Fabiana Rossi (Presenti nel sito della Cardellini alla lezione di Hadoop) ed esegure start-docker.sh (si può usare anche il Dockerfile)
+ 	
+ 	- Eseguire sulla macchina master (quella che si apre dopo aver eseguito il .sh) il comando $ hdfs namenode -format per formattare ed inizializzare il file system
+ 	
+ 	- Fare lo startup dei vari namenode con il comando $ $HADOOP_HOME/sbin/start-dfs.sh
+ 	
+ 	- [OPZIONALE] Fare il check del corretto funzionamento con $ hdfs dfsadmin -report, oppure collegandoci a http://localhost:9870/dfshealth.html
+ 	
+ 	- Eseguire stop-docker.sh per terminare i container
+  
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+[NOTE PER LA RELAZIONE]
+
+- Abbiamo usato build iun locale invece che su amazon per familiarizzare con l'instansiazione della roba manualmente (AWS fa tutto in automatico)
+
+- Usiamo Parquet perchè è column-based ed è ottimale per analytic reads
