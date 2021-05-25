@@ -41,6 +41,7 @@ ENV YARN_NODEMANAGER_USER "root"
 ADD config/hadoop-env.sh $HADOOP_HOME/etc/hadoop/hadoop-env.sh
 ADD config/core-site.xml $HADOOP_HOME/etc/hadoop/core-site.xml
 ADD config/hdfs-site.xml $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+ADD config/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml
 ADD config/workers $HADOOP_HOME/etc/hadoop/workers
 # 
 ADD config/ssh_config /root/.ssh/config

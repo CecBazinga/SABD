@@ -46,7 +46,7 @@ ENV YARN_NODEMANAGER_USER "root"
 ADD config/core-site.xml $SPARK_HOME/conf/core-site.xml
 ADD config/hdfs-site.xml $SPARK_HOME/conf/hdfs-site.xml
 ADD config/yarn-site.xml $SPARK_HOME/conf/yarn-site.xml
-ADD sparkapp.jar ~/sparkapp.jar
+ADD sparkapp.jar /usr/local/sparkapp.jar
 
 
 ADD config/bootstrap.sh /usr/local/bootstrap.sh

@@ -1,4 +1,11 @@
-<property>
-	<name>yarn.resourcemanager.address</name>
-	<value>master:8032</value>	
-</property>	
+<configuration>
+	<property>
+		<name>yarn.resourcemanager.address</name>
+		<value>master:8032</value>	
+	</property>
+	<property>
+	       <name>yarn.resourcemanager.hostname</name>
+	       <value>master</value>
+	</property>
+	
+</configuration>

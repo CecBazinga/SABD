@@ -1,5 +1,5 @@
 #!/bin/bash
-docker network create --driver bridge hadoop_network
+
 docker run -t -i -p 9864:9864 -d --network=hadoop_network --name=slave1 hadoop3-worker
 docker run -t -i -p 9863:9864 -d --network=hadoop_network --name=slave2 hadoop3-worker
 docker run -t -i -p 9862:9864 -d --network=hadoop_network --name=slave3 hadoop3-worker

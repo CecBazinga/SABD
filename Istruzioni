@@ -20,17 +20,36 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
  	
  	- E' stato fatto il cambio versione da Hadoop 3.1.4 a 3.2.2
  	
- 	- Porsi nella cartella di src ed eseguire il comando $ docker build -t hadoop3-worker . e docker build -t hadoop3-master . nelle rispettive cartelle
- 	 
- 	- Porsi sulla cartella scripts ed eseguire start-docker.sh (si può usare anche il Dockerfile)
- 	
- 	- Eseguire sulla macchina master (quella che si apre dopo aver eseguito il .sh) il comando $ hdfs namenode -format per formattare ed inizializzare il file system
- 	
- 	- Fare lo startup dei vari namenode con il comando $ $HADOOP_HOME/sbin/start-dfs.sh
+ 	- Andare nella cartella scripts ed eseguire $ sudo ./start.sh il comando crea la build di docker (build-docker.sh), crea un network ed esegue su due terminali diversi il cluster ed il client (start-dockers.sh e strart-client-sh)
  	
  	- [OPZIONALE] Fare il check del corretto funzionamento con $ hdfs dfsadmin -report, oppure collegandoci a http://localhost:9870/dfshealth.html
  	
- 	- Eseguire stop-docker.sh per terminare i container
+ 	- [OPZIONALE] Sul master node di Hadoop, aprire /etc/hadoop/conf/capacity-scheduler.xml e modificare il campo "yarn.scheduler.capacity.maximum-am-resource" alzandolo a 0.5 circa (Migliori performance, ma niente di critico per il run di una singola applicazione)
+ 	
+ 	- [SUL CLIENT] Andare nella cartella /usr/local ed eseguire il comando:
+ 		$ spark-submit --class main.java.Main --master yarn --deploy-mode client sparkapp.jar 
+ 	   Questo comando farà partire il job di Spark e lo eseguirà sui nodi del cluster Hadoop. 
+ 	   
+ 	   
+ 	- Una volta finita l'esecuzione, è possibile controllare lo stato del sistema collegandosi a:
+ 		+ http://localhost:8088 (Hadoop e YARN)
+ 		+ http://localhost:9870 (HDFS)  
+ 	
+ 	- Uscire da entrambi i terminali con CTRL + D	
+ 	
+ 	- Eseguire $ sudo ./stop-docker.sh per terminare i container e pulire l'ambiente
+ 	
+ 	
+ 	
+ 	
+ 	
+ 	[APPUNTI DA SISTEMARE]
+ 	
+ 	spark-submit --class main.java.Main --master yarn --deploy-mode client sparkapp.jar 
+ 	
+ 	in Hadoop /etc/hadoop/conf/capacity-scheduler.xml il campo yarn.scheduler.capacity.maximum-am-resource alzaro a 0.5
+ 	
+ 	vedi i siti su internet
   
  
  
@@ -49,3 +68,5 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
 - L'applicazione client dovrà girare all'interno dell'ambiente docker per permettere l'accesso alla sottorete (con tutte le porte e gli IP del cluster hadoop)
 
 - I Namenode di HFDS e Workernode di YARN si trovano sulla stessa macchina come il Resource Manager (YARN) e Masternode (HDFS)?
+
+- Aggiunti lo yarn-site.xml per gestire il funzionamento di YARN
