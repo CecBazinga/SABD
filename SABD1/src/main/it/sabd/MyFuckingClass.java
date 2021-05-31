@@ -15,11 +15,16 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.spark.sql.functions.*;
 
 public class MyFuckingClass {
-    public static String filenameSVSL = "/media/cecbazinga/Volume/Files/SomministrazioneVacciniSummaryLatest.parquet";
-    public static String filenamePST  = "/media/cecbazinga/Volume/Files/PuntiSomministrazioneTipologia.parquet";
-    public static String filenameSVL = "/media/cecbazinga/Volume/Files/SomministrazioneVacciniLatest.parquet";
+    //public static String fileLocation = "/media/cecbazinga/Volume/Files/";
+    //public static String fileLocation = "hdfs://master:54310/files/";
+    public static String fileLocation = "/home/andrea/Scrivania/SABD/Files/";
 
-    public static String outputQueries = "/media/cecbazinga/Volume/Files/Queries/";
+    public static String filenameSVSL = fileLocation + "SomministrazioneVacciniSummaryLatest.parquet";
+    public static String filenamePST  = fileLocation + "PuntiSomministrazioneTipologia.parquet";
+    public static String filenameSVL = fileLocation + "SomministrazioneVacciniLatest.parquet";
+
+
+    public static String outputQueries = fileLocation + "/";
 
     public static void main(String[] args) throws InterruptedException {
 
@@ -46,7 +51,7 @@ public class MyFuckingClass {
 
         SparkSession sSession = SparkSession
                 .builder()
-                .appName("Query1").master("local[*]")
+                .appName("Query1").master("local[*]").config("spark.sql.shuffle.partitions", "3")
                 .getOrCreate();
 
 
@@ -74,15 +79,35 @@ public class MyFuckingClass {
         //df = df.withColumn( "data_somministrazione",to_date(col("data_somministrazione"), "yyyy-MM-dd"));
 
         //Per la query 1 non serve sapere il giorno
-        dfSVSL = dfSVSL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
-        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").gt(lit("2020-12-31")));
+        Dataset<Row> dfSVSLQuery1 = dfSVSL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
+        dfSVSLQuery1 = dfSVSLQuery1.sort(col("data_somministrazione")).filter(col("data_somministrazione").gt(lit("2020-12-31")));
 
 
 
+        //long timeQuery1 = Queries.computeQuery1(dfSVSLQuery1,dfPST,outputQueries);
 
-        long time1 = Queries.computeQuery1(dfSVSL,dfPST,outputQueries);
+        //long timeQuerySQL1 = Queries.computeQuery1SQL(dfSVSLQuery1,dfPST,outputQueries, sSession);
 
 
+        Dataset<Row> dfSVLQuery2 = dfSVL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL-dd")));
+        dfSVLQuery2 = dfSVLQuery2.sort(col("data_somministrazione")).filter(col("data_somministrazione").geq(lit("2021-02-01")));
+        Dataset<Row> dfSVLQuery2Month = dfSVLQuery2.withColumn( "anno_mese",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
+
+        dfSVLQuery2.createOrReplaceTempView("SVL");
+        dfSVLQuery2Month.createOrReplaceTempView("SVL_month");
+
+        dfSVLQuery2.show(500);
+        dfSVLQuery2Month.show(500);
+
+        Dataset<Row> dfSVLFiltered = sSession.sql("SELECT anno_mese, area, fascia_anagrafica FROM SVL_month GROUP BY area, anno_mese, fascia_anagrafica HAVING COUNT(*) <= 4");
+
+        dfSVLFiltered.createOrReplaceTempView("SVL_filtered");
+
+        dfSVLFiltered.show(100);
+
+        Dataset<Row> dfSVLGrouped = sSession.sql("SELECT data_somministrazione, area, fascia_anagrafica, sum(sesso_femminile) as total FROM SVL GROUP BY data_somministrazione, area, fascia_anagrafica ORDER BY area, data_somministrazione, fascia_anagrafica ");
+
+        dfSVLGrouped.createOrReplaceTempView("SVL_sum");
 
 
         //JavaRDD<Tuple3<Date,String,Double>> finalRdd = finalPairRdd.map(x-> new Tuple3<Date, String, Double>(x._1,x._2._1,x._2._2));
@@ -139,7 +164,7 @@ public class MyFuckingClass {
          */
 
 
-        //TimeUnit.MINUTES.sleep(10);
+        TimeUnit.MINUTES.sleep(10);
 
         sSession.close();
     }

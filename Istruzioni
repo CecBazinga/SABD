@@ -27,13 +27,14 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
  	- [OPZIONALE] Sul master node di Hadoop, aprire /etc/hadoop/conf/capacity-scheduler.xml e modificare il campo "yarn.scheduler.capacity.maximum-am-resource" alzandolo a 0.5 circa (Migliori performance, ma niente di critico per il run di una singola applicazione)
  	
  	- [SUL CLIENT] Andare nella cartella /usr/local ed eseguire il comando:
- 		$ spark-submit --class main.java.Main --master yarn --deploy-mode client sparkapp.jar 
+ 		$ spark-submit --class main.java.MyFuckingClass --master yarn --deploy-mode client sparkapp.jar 
  	   Questo comando farà partire il job di Spark e lo eseguirà sui nodi del cluster Hadoop. 
  	   
  	   
  	- Una volta finita l'esecuzione, è possibile controllare lo stato del sistema collegandosi a:
  		+ http://localhost:8088 (Hadoop e YARN)
  		+ http://localhost:9870 (HDFS)  
+ 		+ http://localhost:4040 (Spark)  
  	
  	- Uscire da entrambi i terminali con CTRL + D	
  	
@@ -45,13 +46,17 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
  	
  	[APPUNTI DA SISTEMARE]
  	
- 	spark-submit --class main.java.Main --master yarn --deploy-mode client sparkapp.jar 
+ 	spark-submit --class it.sabd.MyFuckingClass --master yarn --deploy-mode client sparkapp.jar 
  	
  	in Hadoop /etc/hadoop/conf/capacity-scheduler.xml il campo yarn.scheduler.capacity.maximum-am-resource alzaro a 0.5
  	
  	vedi i siti su internet
   
   fare cluster mode o client mode per spark
+  
+  Siamo sicuri che l'ordinamento va fatto cos? non è troppo semplice?
+  
+  nifi levare colonne superflue subito
   
  
  

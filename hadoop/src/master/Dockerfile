@@ -45,6 +45,8 @@ ADD config/core-site.xml $HADOOP_HOME/etc/hadoop/core-site.xml
 ADD config/hdfs-site.xml $HADOOP_HOME/etc/hadoop/hdfs-site.xml
 ADD config/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml
 ADD config/workers $HADOOP_HOME/etc/hadoop/workers
+# Add Files (DA LEVARE!)
+ADD files /usr/local/files   	
 # 
 ADD config/ssh_config /root/.ssh/config
 RUN chmod 600 /root/.ssh/config
@@ -59,11 +61,13 @@ ENV BOOTSTRAP /usr/local/bootstrap.sh
 CMD /usr/local/bootstrap.sh
 
 # # Hdfs ports
-EXPOSE 9866 9867 9870 9864 9868 9820 9000 54310
+EXPOSE 9866 9867 9870 9864 9868 9820 9000 8020 54310
 # # Mapred ports
 # EXPOSE 10020 19888
 # #Yarn ports
 EXPOSE 8030 8031 8032 8033 8040 8042 8088
+#Spark
+EXPOSE 4040
 # #Other ports
 # EXPOSE 49707 2122
 #

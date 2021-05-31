@@ -57,7 +57,7 @@ ENV BOOTSTRAP /usr/local/bootstrap.sh
 CMD /usr/local/bootstrap.sh
 
 # # Hdfs ports
-EXPOSE 9866 9867 9870 9864 9868 9820 9000 54310
+EXPOSE 9866 9867 9870 9864 9868 9820 9000 8020 54310
 # # Mapred ports
 # EXPOSE 10020 19888
 # #Yarn ports

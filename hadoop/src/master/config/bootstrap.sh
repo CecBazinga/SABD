@@ -10,6 +10,8 @@ hdfs namenode -format
 
 $HADOOP_HOME/sbin/start-all.sh
 
+hdfs dfs -put /usr/local/files /files
+
 # Launch bash console  
 /bin/bash
 
