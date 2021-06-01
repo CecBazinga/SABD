@@ -96,7 +96,11 @@ public class Utils {
 
     public static double computeDailyDoses(Date date, double monthlyDosesPerCenter ){
 
+        return monthlyDosesPerCenter/getDaysPerMonth(date);
+    }
 
+
+    public static int getDaysPerMonth(Date date){
 
         List<Integer> months31 = Arrays.asList(3, 5, 8, 10);
 
@@ -105,20 +109,20 @@ public class Utils {
         //LocalDate dateLocal = date.toLocalDate();
         //int month = dateLocal.getMonthValue();
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"));
         cal.setTime(date);
         int month = cal.get(Calendar.MONTH);
 
 
         if(month == 1){
-            return (monthlyDosesPerCenter/28);
+            return 28;
         }
-        else if( months31.contains(month)){
+        else if(months31.contains(month)){
 
-            return (monthlyDosesPerCenter/30);
+            return 30;
         }
         else {
-            return ((monthlyDosesPerCenter/31));
+            return 31;
         }
 
     }

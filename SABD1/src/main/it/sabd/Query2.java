@@ -5,11 +5,13 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF2;
+import org.apache.spark.sql.api.java.UDF3;
 import org.apache.spark.sql.types.DataTypes;
 import scala.collection.JavaConverters;
 import scala.collection.mutable.WrappedArray;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.functions.callUDF;
@@ -104,7 +106,7 @@ public class Query2 {
 
 
         //Aggiunta del valore di regressione
-        dfSVLListed = dfSVLListed.withColumn("regressione", callUDF(udfName, col("list_giorno"), col("list_total")));
+        dfSVLListed = dfSVLListed.withColumn("regressione", callUDF(udfName, col("list_giorno"), col("list_total"), col("anno_mese")));
 
 
         if(Utils.DEBUG) {
@@ -124,8 +126,8 @@ public class Query2 {
     private static void registerRegressionUDF(SparkSession sSession, String udfName){
 
 
-        sSession.udf().register(udfName, (UDF2< WrappedArray<Integer>, WrappedArray<Long>, Long>)
-                (giorno, valore) -> {
+        sSession.udf().register(udfName, (UDF3< WrappedArray<Integer>, WrappedArray<Long>, Date, Long>)
+                (giorno, valore, data) -> {
 
                     ArrayList<Integer> x = new ArrayList(JavaConverters.asJavaCollectionConverter(giorno).asJavaCollection());
                     ArrayList<Long> y = new ArrayList(JavaConverters.asJavaCollectionConverter(valore).asJavaCollection());
@@ -147,8 +149,10 @@ public class Query2 {
                     for(int i = 0; i < len; i++)
                         regression.addData((double) x.get(i), (double) y.get(i));
 
+                    double day = (double) Utils.getDaysPerMonth(data) + 1.0;
+                    
                     //Computo della regressione TODO: calcolare numero giorni nei mesi in accordo
-                    return (long) regression.predict(32.0);
+                    return (long) regression.predict(day);
 
                 }, DataTypes.LongType);
 
