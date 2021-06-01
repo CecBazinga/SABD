@@ -2,7 +2,13 @@ package it.sabd;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+
+
+
 public class Utils {
+
+    //Usato per fare stampe di Debug
+    public static boolean DEBUG = true;
 
 
     public static String regionNameConverter(String name){

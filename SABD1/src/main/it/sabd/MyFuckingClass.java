@@ -1,15 +1,10 @@
 package it.sabd;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
+
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import scala.Tuple2;
-import scala.collection.immutable.List;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.spark.sql.functions.*;
@@ -17,7 +12,8 @@ import static org.apache.spark.sql.functions.*;
 public class MyFuckingClass {
     //public static String fileLocation = "/media/cecbazinga/Volume/Files/";
     //public static String fileLocation = "hdfs://master:54310/files/";
-    public static String fileLocation = "/home/andrea/Scrivania/SABD/Files/";
+    //public static String fileLocation = "/home/andrea/Scrivania/SABD/Files/";
+    public static String fileLocation = "/Users/andreapaci/Desktop/SABD/Files/";
 
     public static String filenameSVSL = fileLocation + "SomministrazioneVacciniSummaryLatest.parquet";
     public static String filenamePST  = fileLocation + "PuntiSomministrazioneTipologia.parquet";
@@ -89,29 +85,63 @@ public class MyFuckingClass {
         //long timeQuerySQL1 = Queries.computeQuery1SQL(dfSVSLQuery1,dfPST,outputQueries, sSession);
 
 
-        Dataset<Row> dfSVLQuery2 = dfSVL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL-dd")));
-        dfSVLQuery2 = dfSVLQuery2.sort(col("data_somministrazione")).filter(col("data_somministrazione").geq(lit("2021-02-01")));
-        Dataset<Row> dfSVLQuery2Month = dfSVLQuery2.withColumn( "anno_mese",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
+        Query2.query2SQL(sSession, dfSVL);
 
-        dfSVLQuery2.createOrReplaceTempView("SVL");
-        dfSVLQuery2Month.createOrReplaceTempView("SVL_month");
 
-        dfSVLQuery2.show(500);
-        dfSVLQuery2Month.show(500);
 
-        Dataset<Row> dfSVLFiltered = sSession.sql("SELECT anno_mese, area, fascia_anagrafica FROM SVL_month GROUP BY area, anno_mese, fascia_anagrafica HAVING COUNT(*) <= 4");
 
-        dfSVLFiltered.createOrReplaceTempView("SVL_filtered");
 
-        dfSVLFiltered.show(100);
 
-        Dataset<Row> dfSVLGrouped = sSession.sql("SELECT data_somministrazione, area, fascia_anagrafica, sum(sesso_femminile) as total FROM SVL GROUP BY data_somministrazione, area, fascia_anagrafica ORDER BY area, data_somministrazione, fascia_anagrafica ");
 
-        dfSVLGrouped.createOrReplaceTempView("SVL_sum");
+
+
+
+        /*Dataset<Row> areas = dfSVLGrouped.select(col("area")).dropDuplicates();
+        areas.show();
+
+        Dataset<Row> annoMesi = dfSVLGrouped.select(col("anno_mese")).dropDuplicates();
+        annoMesi.show();
+
+        Dataset<Row> fasceAnagrafiche = dfSVLGrouped.select(col("fascia_anagrafica")).dropDuplicates();
+        fasceAnagrafiche.show();
+
+        Dataset<Row> dfSVLList = dfSVLGrouped.select(col("area"), col("anno_mese"), col("fascia_anagrafica")).dropDuplicates();
+
+        dfSVLList.show(100);
+
+        //TODO: aggiungere compilazione maven, quando fai regressione ricordati che devi calcolare il giorno dopo a quello della grandezza del mese, levare static ai metodi, vedere se va fatto sparkconf, metti HBASE,
+        //TODO: check che alcuni valori della regressione hanno valore negativo (UPDATE, prendendo quei valori e graficandoli ci sta che vanno in negativo, mettere il limite che se è < 0, allora = 0
+
+        SimpleRegression regression = new SimpleRegression();
+
+
+        for(Row area : areas.collectAsList()) {
+
+            System.out.println(area.get(0).toString());
+
+            for(Row annoMese: annoMesi.collectAsList()){
+
+                for(Row fasciaAnagrafica: fasceAnagrafiche.collectAsList()){
+
+
+
+
+
+                }
+
+            }
+
+        }*/
 
 
         //JavaRDD<Tuple3<Date,String,Double>> finalRdd = finalPairRdd.map(x-> new Tuple3<Date, String, Double>(x._1,x._2._1,x._2._2));
 
+
+        //Dataset<Row> resultQuery2 = dfSVLGrouped.withColumn( "regression", lr.fit(dfSVLGrouped.select(col("giorno"), col("total"))));
+
+        //inearRegressionModel lrModel = lr.fit(training);
+
+// Print the coefficients and intercept for linear regression.
 
 
 
