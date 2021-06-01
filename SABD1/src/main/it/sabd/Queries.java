@@ -5,26 +5,72 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
+import scala.Tuple3;
 
 import java.util.Date;
+import java.util.List;
 
-import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.*;
+import static org.apache.spark.sql.functions.lit;
 
 public class Queries {
+
+    public static long computeQuery2(Dataset<Row> dfSVL, String destinationPath){
+
+        long startTime = System.nanoTime();
+
+        dfSVL = dfSVL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"),
+                "yyyy-LL-dd"))).filter(col("data_somministrazione").gt(lit("2021-01-31")));
+
+
+        JavaPairRDD<Tuple3<Date,String, String>,  Integer> avoidCloneDaysRdd = dfSVL.toJavaRDD().mapToPair(x -> new Tuple2<Tuple3< Date,String,String>,Integer>
+                (new Tuple3<>(x.getDate(0),x.getString(2),x.getString(3)), x.getInt(5))).reduceByKey((x, y) -> x+y);
+
+
+
+        JavaPairRDD<Tuple2<String, String>, Iterable<Tuple2<Date, Integer>>> rddpairSVL = avoidCloneDaysRdd.mapToPair(x -> new Tuple2<Tuple2< String,String>,Tuple2<Date, Integer>>
+                (new Tuple2<>(x._1._2(),x._1._3()), new Tuple2<>(x._1._1(), x._2))).groupByKey();
+
+        rddpairSVL.cache();
+
+
+        JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date, Integer>>> rddByMonth = rddpairSVL.flatMapToPair(new Utils.daysGroupedByMonth());
+
+        //TODO *** dice di filtrare le fasce di età che abbiano almeno 2 giorni di campagna vaccinale (decidere come comportarsi con 2 giorni di 0 vaccini)--> io li lascerei
+        JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date, Integer>>> filteredRddByMonth = rddByMonth.filter(x -> x._2.size() > 1);
+
+
+
+        long endTime = System.nanoTime();
+
+        //TODO * si puo salvare il file con un nome decente anzichè part-0000 ?
+
+        filteredRddByMonth.saveAsTextFile(destinationPath + "Query2");
+
+        return (endTime-startTime);
+
+
+    }
+
+
+
 
     public static long computeQuery1(Dataset<Row> dfSVSL, Dataset<Row> dfPST, String destinationPath){
 
 
         long startTime = System.nanoTime();
 
+        //TODO *** siccome si chiede di ordinare il file all'inizio del processamento, vogliamo anche partizionare l'rdd in base alle date?
+
+        //Per la query 1 non serve sapere il giorno
+        dfSVSL = dfSVSL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
+        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").gt(lit("2020-12-31")));
 
 
 
         //Convert dataframe to rdd taking only desired columns
         JavaPairRDD<Tuple2<Date,String>,Integer> rddpairSVSL = dfSVSL.toJavaRDD().mapToPair(x -> new Tuple2<Tuple2<Date, String>, Integer>
                 (new Tuple2<Date, String>(x.getDate(0), x.getString(1)), x.getInt(2)));
-
-        ;
 
         //Persist the rdd because was a large transformation from all dataframe to 3 columns rdd
         rddpairSVSL.cache();
@@ -47,8 +93,6 @@ public class Queries {
         //Persist the rdd because was a large transformation from all dataframe to 3 columns rdd
         dfPSTPairs.cache();
 
-        dfPST.show();
-
         JavaPairRDD<String, Integer> dfPSTCount = dfPSTPairs.reduceByKey((x,y) -> x+y);
 
 
@@ -62,7 +106,7 @@ public class Queries {
         JavaPairRDD<Date,Tuple2<String,Double>> finalPairRdd = rddJoin.mapToPair(x -> (new Tuple2<Date,Tuple2<String,Double>>
                 (x._2._1._1,new Tuple2<String, Double>(x._1, Utils.computeDailyDoses(x._2._1._1,( (double) x._2._1._2/x._2._2))))));
 
-        //TODO DO we persist in cache this rdd ? (Why) do we need to call cahce or persist on a RDD (cercare su Stack overflow)
+        //TODO *** DO we persist in cache this rdd ?
 
         // Preferred apply a UDF to an rdd rather than use a join with another rdd having only region short and extended name
         // and rather than keeping the name column along all the other rdds and calculations
@@ -75,10 +119,14 @@ public class Queries {
 
         long endTime = System.nanoTime();
 
+        //TODO * si puo salvare il file con un nome decente anzichè part-0000 ?
+
         finalRdd.saveAsTextFile(destinationPath + "Query1");
 
         return (endTime-startTime);
     }
+
+
 
     public static long computeQuery1SQL(Dataset<Row> dfSVSL, Dataset<Row> dfPST, String destinationPath, SparkSession sSession){
 

@@ -1,4 +1,8 @@
 package it.sabd;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.glassfish.jersey.internal.guava.Lists;
+import scala.Tuple2;
+
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -78,9 +82,9 @@ public class Utils {
             case "VEN" :
                 extendedName = "Veneto";
                 break;
-            }
+        }
 
-            return extendedName;
+        return extendedName;
     }
 
 
@@ -127,7 +131,61 @@ public class Utils {
 
     }
 
+    public static class daysGroupedByMonth implements PairFlatMapFunction<Tuple2<Tuple2<String, String>, Iterable<Tuple2<Date, Integer>>>,
+            Tuple2<String,String>, List<Tuple2<Date,Integer>> > {
+
+        @Override
+        public Iterator<Tuple2<Tuple2<String, String>, List<Tuple2<Date, Integer>>>>
+        call(Tuple2<Tuple2<String, String>, Iterable<Tuple2<Date, Integer>>> row) throws Exception {
+
+            String area = row._1._1 ;
+            String age = row._1._2 ;
+
+            List<Tuple2<Tuple2<String, String>, List<Tuple2<Date, Integer>>>> results = new ArrayList<>();
+            Tuple2<Tuple2<String, String>, List<Tuple2<Date, Integer>>> newRow ;
+
+            List<Tuple2<Date, Integer>> dates = Lists.newArrayList( row._2);
+            dates.sort(Comparator.comparing(Tuple2::_1));
+
+            List<Tuple2<Date,Integer>> datesPerMonth = new ArrayList<>();
 
 
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
+            cal.setTime(dates.get(0)._1);
+            int previousMonth = cal.get(Calendar.MONTH);
+            int currentMonth = 0;
+
+            //List<Iterable<Tuple2<Date, Integer>>> daysByMonth = new ArrayList<>();
+            //Date date =
+
+
+            for (Tuple2<Date, Integer> date : dates) {
+
+                cal.setTime(date._1);
+                currentMonth = cal.get(Calendar.MONTH);
+
+                if (currentMonth==previousMonth){
+                    datesPerMonth.add(date);
+                    previousMonth = currentMonth ;
+                }
+                else if(currentMonth!=previousMonth){
+
+                    newRow = new Tuple2<>(new Tuple2<>(area,age),new ArrayList<>(datesPerMonth)) ;
+                    results.add(newRow);
+                    datesPerMonth.clear();
+                    datesPerMonth.add(date);
+                    previousMonth = currentMonth ;
+
+                }
+            }
+
+            newRow = new Tuple2<>(new Tuple2<>(area,age),new ArrayList<>(datesPerMonth)) ;
+            results.add(newRow);
+
+
+            return results.iterator();
+
+        }
+    }
 
 }

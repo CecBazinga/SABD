@@ -1,19 +1,24 @@
 package it.sabd;
 
-
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import scala.Tuple2;
+import scala.Tuple3;
 
 import java.util.concurrent.TimeUnit;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.spark.sql.functions.*;
 
 public class MyFuckingClass {
-    //public static String fileLocation = "/media/cecbazinga/Volume/Files/";
+    public static String fileLocation = "/media/cecbazinga/Volume/Files/";
     //public static String fileLocation = "hdfs://master:54310/files/";
     //public static String fileLocation = "/home/andrea/Scrivania/SABD/Files/";
-    public static String fileLocation = "/Users/andreapaci/Desktop/SABD/Files/";
+    //public static String fileLocation = "/Users/andreapaci/Desktop/SABD/Files/";
 
     public static String filenameSVSL = fileLocation + "SomministrazioneVacciniSummaryLatest.parquet";
     public static String filenamePST  = fileLocation + "PuntiSomministrazioneTipologia.parquet";
@@ -70,8 +75,21 @@ public class MyFuckingClass {
 
 
 
-
         //Nel caso in cui sia rilevante il giorno
+
+
+        /*
+        filteredRddByMonth.foreach(x->{
+
+            System.out.println("Printing: " + x);
+
+        });
+
+         */
+
+
+
+        /*
         //df = df.withColumn( "data_somministrazione",to_date(col("data_somministrazione"), "yyyy-MM-dd"));
 
         //Per la query 1 non serve sapere il giorno
@@ -85,9 +103,16 @@ public class MyFuckingClass {
         //long timeQuerySQL1 = Queries.computeQuery1SQL(dfSVSLQuery1,dfPST,outputQueries, sSession);
 
 
+        //2nd query
+        long time2 = Queries.computeQuery2(dfSVL,outputQueries);
+
+
+
+
+         */
         Query2.query2SQL(sSession, dfSVL);
 
-
+/*
 
 
 
@@ -160,38 +185,8 @@ public class MyFuckingClass {
 
 
 
-        /*
-        JavaRDD<VacciniSummaryLatest> rddVSL = df.toJavaRDD().map(new Function<Row, VacciniSummaryLatest>() {
-            @Override
-            public VacciniSummaryLatest call(Row row) {
-                VacciniSummaryLatest vsl = new VacciniSummaryLatest();
-                vsl.setData_somministrazione(row.getDate(0));
-                vsl.setArea(row.getString(1));
-                vsl.setTotale(row.getInt(2));
-                vsl.setSesso_maschile(row.getInt(3));
-                vsl.setSesso_femminile(row.getInt(4));
-                vsl.setCategoria_operatori_sanitari_sociosanitari(row.getInt(5));
-                vsl.setCategoria_personale_non_sanitario(row.getInt(6));
-                vsl.setCategoria_ospiti_rsa(row.getInt(7));
-                vsl.setCategoria_personale_scolastico(row.getInt(8));
-                vsl.setCategoria_60_69(row.getInt(9));
-                vsl.setCategoria_70_79(row.getInt(10));
-                vsl.setCategoria_over80(row.getInt(11));
-                vsl.setCategoria_soggetti_fragili(row.getInt(12));
-                vsl.setCategoria_forze_armate(row.getInt(13));
-                vsl.setCategoria_altro(row.getInt(14));
-                vsl.setPrima_dose(row.getInt(15));
-                vsl.setSeconda_dose(row.getInt(16));
-                vsl.setCodice_NUTS1(row.getString(17));
-                vsl.setCodice_NUTS2(row.getString(18));
-                vsl.setCodice_regione_ISTAT(row.getInt(19));
-                vsl.setNome_area(row.getString(20));
-                return vsl;
-            };
-        });
 
 
-         */
 
 
         TimeUnit.MINUTES.sleep(10);
