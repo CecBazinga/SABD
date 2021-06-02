@@ -23,9 +23,9 @@ public class Utils {
     //Location dei file
 
     //public static String fileLocation = "/media/cecbazinga/Volume/Files/";
-    //public static String fileLocation = "hdfs://master:54310/files/";
+    public static String fileLocation = "hdfs://master:54310/files/";
     //public static String fileLocation = "/home/andrea/Scrivania/SABD/Files/";
-    public static String fileLocation = "/Users/andreapaci/Desktop/SABD/Files/";
+    //public static String fileLocation = "/Users/andreapaci/Desktop/SABD/Files/";
 
     public static String filenameSVSL = fileLocation + "SomministrazioneVacciniSummaryLatest.parquet";
     public static String filenamePST = fileLocation + "PuntiSomministrazioneTipologia.parquet";

@@ -27,7 +27,7 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
  	- [OPZIONALE] Sul master node di Hadoop, aprire /etc/hadoop/conf/capacity-scheduler.xml e modificare il campo "yarn.scheduler.capacity.maximum-am-resource" alzandolo a 0.5 circa (Migliori performance, ma niente di critico per il run di una singola applicazione)
  	
  	- [SUL CLIENT] Andare nella cartella /usr/local ed eseguire il comando:
- 		$ spark-submit --class main.java.MyFuckingClass --master yarn --deploy-mode client sparkapp.jar 
+ 		$ spark-submit --class it.sabd.QueryExecutor --master yarn --deploy-mode client sparkapp.jar 
  	   Questo comando farà partire il job di Spark e lo eseguirà sui nodi del cluster Hadoop. 
  	   
  	   

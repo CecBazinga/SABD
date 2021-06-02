@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.spark.sql.functions.*;
 
-public class MyFuckingClass {
+public class QueryExecutor {
 
 
 
@@ -49,7 +49,7 @@ public class MyFuckingClass {
 
         SparkSession sSession = SparkSession
                 .builder()
-                .appName("Query1").master("local[*]").config("spark.sql.shuffle.partitions", "3")
+                .appName("Query1").master("yarn").config("spark.sql.shuffle.partitions", "3")
                 .getOrCreate();
 
 
@@ -58,6 +58,7 @@ public class MyFuckingClass {
         //TODO: rimuovere colonne da nifi
 
 
+        HBaseConnector.getInstance().run();
 
         //Computo della prima query
 
