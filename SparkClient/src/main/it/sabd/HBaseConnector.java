@@ -20,8 +20,11 @@ public class HBaseConnector {
 
 
         // Instantiating configuration class
-        conf = HBaseConfiguration.create();
-
+        conf = HBaseConfiguration.create(); 
+        conf.set("hbase.master", "master:60000");
+    	conf.set("hbase.zookeeper.quorum", "master");
+	conf.setInt("hbase.zookeeper.property.clientPort", 2181);
+	
         try {
             conn = ConnectionFactory.createConnection(conf);
             admin  = conn.getAdmin();

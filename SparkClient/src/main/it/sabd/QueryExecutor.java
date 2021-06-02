@@ -49,7 +49,7 @@ public class QueryExecutor {
 
         SparkSession sSession = SparkSession
                 .builder()
-                .appName("Query1").master("yarn").config("spark.sql.shuffle.partitions", "3")
+                .appName("QueryExecutor").master("yarn").config("spark.sql.shuffle.partitions", "3")
                 .getOrCreate();
 
 

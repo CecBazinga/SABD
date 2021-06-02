@@ -9,9 +9,10 @@ ARG DEBIAN_FRONTEND=noninteractive
 # install dev tools
 RUN apt-get update
 RUN apt-get install -y curl tar sudo openssh-server rsync default-jdk vim net-tools iputils-ping wget git
+RUN apt install -y  maven openjdk-8-jdk openjdk-8-jre
 
 # # java
-ENV JAVA_HOME /usr/lib/jvm/default-java
+ENV JAVA_HOME /usr/lib/jvm/java-1.8.0-openjdk-amd64/jre
 ENV PATH $PATH:$JAVA_HOME/bin
 
 
@@ -46,7 +47,10 @@ ENV YARN_NODEMANAGER_USER "root"
 ADD config/core-site.xml $SPARK_HOME/conf/core-site.xml
 ADD config/hdfs-site.xml $SPARK_HOME/conf/hdfs-site.xml
 ADD config/yarn-site.xml $SPARK_HOME/conf/yarn-site.xml
-ADD sparkapp.jar /usr/local/sparkapp.jar
+ADD SparkClient /usr/local/SparkClient
+
+RUN cd /usr/local/SparkClient && mvn clean compile assembly:single
+RUN cd /usr/local && mv SparkClient/target/QueryExecutor-1-jar-with-dependencies.jar ./sparkapp.jar
 
 
 ADD config/bootstrap.sh /usr/local/bootstrap.sh
