@@ -51,12 +51,16 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
  	in Hadoop /etc/hadoop/conf/capacity-scheduler.xml il campo yarn.scheduler.capacity.maximum-am-resource alzaro a 0.5
  	
  	vedi i siti su internet
+
+       
   
   fare cluster mode o client mode per spark
   
   Siamo sicuri che l'ordinamento va fatto cos? non è troppo semplice?
   
   nifi levare colonne superflue subito
+
+  Menzionate località dei dati usando Hadoop con spark
   
  
  
