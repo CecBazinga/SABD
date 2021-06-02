@@ -32,9 +32,10 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
  	   
  	   
  	- Una volta finita l'esecuzione, è possibile controllare lo stato del sistema collegandosi a:
- 		+ http://localhost:8088 (Hadoop e YARN)
- 		+ http://localhost:9870 (HDFS)  
- 		+ http://localhost:4040 (Spark)  
+ 		+ http://localhost:8088   (Hadoop e YARN)
+ 		+ http://localhost:9870   (HDFS)  
+ 		+ http://localhost:4040   (Spark)
+ 		+ http://localhost:60010  (HBase)  
  	
  	- Uscire da entrambi i terminali con CTRL + D	
  	
@@ -81,3 +82,5 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
 - I Namenode di HFDS e Workernode di YARN si trovano sulla stessa macchina come il Resource Manager (YARN) e Masternode (HDFS)?
 
 - Aggiunti lo yarn-site.xml per gestire il funzionamento di YARN
+
+- Dire di zookeeper locale
