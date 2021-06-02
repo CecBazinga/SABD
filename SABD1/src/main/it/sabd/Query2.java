@@ -122,7 +122,10 @@ public class Query2 {
 
         System.out.println("\n\n*************************************************************************************** \n");
 
-        orderedRdd.saveAsTextFile(destinationPath + "Query2Spark");
+        try {
+
+            orderedRdd.saveAsTextFile(destinationPath + "Query2Spark");
+        } catch (Exception e) { e.printStackTrace(); }
 
         return (endTime-startTime);
 
@@ -265,16 +268,18 @@ public class Query2 {
 
         long endTime = System.nanoTime();
 
-        dfSVLLeaderboard.coalesce(1)
-                .write().format("csv")
-                .option("sep", ",")
-                .option("header", "true")
-                .mode(SaveMode.Overwrite)
-                .save(destinationPath + "Query2SQL");
+
 
         System.out.println("\n\n*************************************************************************************** \n");
 
-
+        try {
+            dfSVLLeaderboard.coalesce(1)
+                    .write().format("csv")
+                    .option("sep", ",")
+                    .option("header", "true")
+                    .mode(SaveMode.Overwrite)
+                    .save(destinationPath + "Query2SQL");
+        } catch (Exception e) { e.printStackTrace(); }
 
         return (endTime - startTime);
 

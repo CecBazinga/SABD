@@ -126,8 +126,10 @@ public class Query1 {
 
 
         //TODO: print in modo decente del CSV, aggiungre .mode(SaveMode.Overwrite)
+        try {
+            finalRdd.coalesce(1).saveAsTextFile(destinationPath + "Query1Spark");
 
-        finalRdd.coalesce(1).saveAsTextFile(destinationPath + "Query1Spark");
+        } catch (Exception e) { e.printStackTrace(); }
 
         return (endTime - startTime);
     }
@@ -217,15 +219,17 @@ public class Query1 {
 
         long endTime = System.nanoTime();
 
-        dfSVSLCenterAverage.coalesce(1)
-                .write().format("csv")
-                .option("sep", ",")
-                .option("header", "true")
-                .mode(SaveMode.Overwrite)
-                .save(destinationPath + "Query1SQL");
+
 
         System.out.println("\n\n*************************************************************************************** \n");
-
+        try {
+            dfSVSLCenterAverage.coalesce(1)
+                    .write().format("csv")
+                    .option("sep", ",")
+                    .option("header", "true")
+                    .mode(SaveMode.Overwrite)
+                    .save(destinationPath + "Query1SQL");
+        } catch (Exception e) { e.printStackTrace(); }
 
         return (endTime - startTime);
     }
