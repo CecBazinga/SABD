@@ -6,14 +6,40 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
 import scala.Tuple3;
+import scala.collection.JavaConverters;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.functions.lit;
 
 public class Queries {
+
+
+    public static long applyRegression(List<Tuple2<Date,Long>> list){
+
+        ArrayList<Integer> x = new ArrayList();
+        ArrayList<Long> y = new ArrayList();
+
+        Calendar calendar = Calendar.getInstance();
+
+
+        for (Tuple2<Date,Long> element : list){
+
+            calendar.setTime(element._1);
+            x.add(calendar.get(Calendar.DAY_OF_MONTH));
+            y.add(element._2);
+
+        }
+
+        return Utils.regression(x,y,list.get(0)._1);
+
+
+    }
+
+
 
     public static long computeQuery2(Dataset<Row> dfSVL, String destinationPath){
 
@@ -23,21 +49,45 @@ public class Queries {
                 "yyyy-LL-dd"))).filter(col("data_somministrazione").gt(lit("2021-01-31")));
 
 
-        JavaPairRDD<Tuple3<Date,String, String>,  Integer> avoidCloneDaysRdd = dfSVL.toJavaRDD().mapToPair(x -> new Tuple2<Tuple3< Date,String,String>,Integer>
-                (new Tuple3<>(x.getDate(0),x.getString(2),x.getString(3)), x.getInt(5))).reduceByKey((x, y) -> x+y);
+
+        JavaPairRDD<Tuple3<Date,String, String>, Long> avoidCloneDaysRdd = dfSVL.toJavaRDD().mapToPair(x -> new Tuple2<Tuple3< Date,String,String>,Long>
+                (new Tuple3<>(x.getDate(0),x.getString(2),x.getString(3)), (long) x.getInt(5))).reduceByKey((x, y) -> x+y);
 
 
 
-        JavaPairRDD<Tuple2<String, String>, Iterable<Tuple2<Date, Integer>>> rddpairSVL = avoidCloneDaysRdd.mapToPair(x -> new Tuple2<Tuple2< String,String>,Tuple2<Date, Integer>>
-                (new Tuple2<>(x._1._2(),x._1._3()), new Tuple2<>(x._1._1(), x._2))).groupByKey();
+        JavaPairRDD<Tuple2<String, String>, Iterable<Tuple2<Date,Long>>> rddpairSVL = avoidCloneDaysRdd.mapToPair(x ->
+                new Tuple2<>(new Tuple2<>(x._1._2(),x._1._3()), new Tuple2<>(x._1._1(), x._2))).groupByKey();
+
+
 
         rddpairSVL.cache();
 
 
-        JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date, Integer>>> rddByMonth = rddpairSVL.flatMapToPair(new Utils.daysGroupedByMonth());
+        JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date, Long>>> rddByMonth = rddpairSVL.flatMapToPair(new Utils.daysGroupedByMonth());
 
-        //TODO *** dice di filtrare le fasce di età che abbiano almeno 2 giorni di campagna vaccinale (decidere come comportarsi con 2 giorni di 0 vaccini)--> io li lascerei
-        JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date, Integer>>> filteredRddByMonth = rddByMonth.filter(x -> x._2.size() > 1);
+        JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date,Long>>> filteredRddByMonth = rddByMonth.filter(x -> x._2.size() > 1);
+
+        JavaPairRDD<String, Iterable<Tuple2<String, Long>>> predictedRdd = filteredRddByMonth.mapToPair(x ->
+                new Tuple2<>(Utils.firstDayNextMonth(x._2.get(0)._1) + " " + x._1._2,new Tuple2<>(x._1._1,applyRegression(x._2))))
+                .groupByKey()
+                .sortByKey();
+
+
+        JavaPairRDD<String , List<Tuple2<String,Long>>> orderedRdd = predictedRdd.mapToPair(x ->
+                new Tuple2<String, List<Tuple2<String,Long>>>(x._1, Utils.iterableToListTop5(x._2)));
+
+
+
+        //.sortByKey(new TupleComparator(Comparator.<Date>naturalOrder(),Comparator.<Long>naturalOrder()));;
+
+        orderedRdd.foreach(x->{
+            System.out.println("Printing: " + x);
+        });
+
+
+
+        System.out.println("PORCODDIO");
+
 
 
 
@@ -45,12 +95,15 @@ public class Queries {
 
         //TODO * si puo salvare il file con un nome decente anzichè part-0000 ?
 
-        filteredRddByMonth.saveAsTextFile(destinationPath + "Query2");
+        //filteredRddByMonth.saveAsTextFile(destinationPath + "Query2");
 
         return (endTime-startTime);
 
 
     }
+
+
+
 
 
 
@@ -64,7 +117,7 @@ public class Queries {
 
         //Per la query 1 non serve sapere il giorno
         dfSVSL = dfSVSL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
-        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").gt(lit("2020-12-31")));
+        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").gt(lit("2020-12-31")).lt(lit("2021-06-01")));
 
 
 
@@ -117,14 +170,26 @@ public class Queries {
         JavaPairRDD<String,Tuple2<String,Double>> finalRdd = extendedNamesRdd.mapToPair(x -> (new Tuple2<String,Tuple2<String,Double>>
                 (Utils.dateConverter(x._1),new Tuple2<String, Double>(x._2._1,x._2._2))));
 
+
         long endTime = System.nanoTime();
 
+
+        finalRdd.foreach(x->{
+
+            System.out.println("Printing: " + x);
+
+        });
+
         //TODO * si puo salvare il file con un nome decente anzichè part-0000 ?
+        //TODO ordinare per regione anche?
 
         finalRdd.saveAsTextFile(destinationPath + "Query1");
 
         return (endTime-startTime);
     }
+
+
+
 
 
 

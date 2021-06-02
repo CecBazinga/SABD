@@ -1,8 +1,11 @@
 package it.sabd;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.glassfish.jersey.internal.guava.Lists;
 import scala.Tuple2;
+import scala.Tuple3;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -89,6 +92,28 @@ public class Utils {
 
 
 
+
+
+
+    public static String firstDayNextMonth (Date data){
+
+        Calendar today = Calendar.getInstance();
+        today.setTime(data);
+
+        Calendar next = Calendar.getInstance();
+        next.set(Calendar.YEAR,today.get(Calendar.YEAR));
+        next.set(Calendar.MONTH, today.get(Calendar.MONTH) + 1);
+        next.set(Calendar.DAY_OF_MONTH, 1);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.ITALIAN);
+
+        return  sdf.format(next.getTime());
+
+   }
+
+
+
+
     public static String dateConverter(Date date){
 
         SimpleDateFormat month_date = new SimpleDateFormat("MMMM-yyyy", Locale.ITALIAN);
@@ -98,10 +123,14 @@ public class Utils {
 
 
 
+
+
     public static double computeDailyDoses(Date date, double monthlyDosesPerCenter ){
 
         return monthlyDosesPerCenter/getDaysPerMonth(date);
     }
+
+
 
 
     public static int getDaysPerMonth(Date date){
@@ -131,23 +160,73 @@ public class Utils {
 
     }
 
-    public static class daysGroupedByMonth implements PairFlatMapFunction<Tuple2<Tuple2<String, String>, Iterable<Tuple2<Date, Integer>>>,
-            Tuple2<String,String>, List<Tuple2<Date,Integer>> > {
+
+
+
+    public static long regression(ArrayList<Integer> x,ArrayList<Long> y,Date data){
+
+        SimpleRegression regression = new SimpleRegression();
+
+        //Check per la size del dataset
+
+        int len = x.size();
+
+        if(len != y.size()){
+            System.out.println("+++++++++++++++++++++ERRORE: il numero di giorni ed il numero di vaccinazioni non corrisponde\n" +
+                    "Verra selezionato il minimo valore.\n");
+            len = Integer.min(len, y.size());
+        }
+
+
+        //Aggiunta dei dati al dataset
+        for(int i = 0; i < len; i++)
+            regression.addData((double) x.get(i), (double) y.get(i));
+
+        double day = (double) Utils.getDaysPerMonth(data) + 1.0;
+
+        //Computo della regressione TODO: calcolare numero giorni nei mesi in accordo
+        return (long) regression.predict(day);
+
+    }
+
+    public static long ageStringToLong(String string){
+
+        String newString = string.substring(0,2) + string.substring(3);
+
+        return Long.valueOf(newString);
+
+    }
+
+
+    public static List<Tuple2<String,Long>> iterableToListTop5 (Iterable<Tuple2<String, Long>> iterable){
+
+        List<Tuple2<String,Long>> sortedList = new ArrayList<>();
+        for (Tuple2<String,Long> tuple : iterable) {
+            sortedList.add(tuple);
+        }
+        sortedList.sort(Comparator.comparing(Tuple2::_2,Comparator.reverseOrder()));
+
+        return sortedList.subList(0,5);
+
+    }
+
+    public static class daysGroupedByMonth implements PairFlatMapFunction<Tuple2<Tuple2<String, String>, Iterable<Tuple2<Date,Long>>>,
+            Tuple2<String,String>, List<Tuple2<Date,Long>> > {
 
         @Override
-        public Iterator<Tuple2<Tuple2<String, String>, List<Tuple2<Date, Integer>>>>
-        call(Tuple2<Tuple2<String, String>, Iterable<Tuple2<Date, Integer>>> row) throws Exception {
+        public Iterator<Tuple2<Tuple2<String, String>, List<Tuple2<Date,Long>>>>
+        call(Tuple2<Tuple2<String, String>, Iterable<Tuple2<Date,Long>>> row) throws Exception {
 
             String area = row._1._1 ;
             String age = row._1._2 ;
 
-            List<Tuple2<Tuple2<String, String>, List<Tuple2<Date, Integer>>>> results = new ArrayList<>();
-            Tuple2<Tuple2<String, String>, List<Tuple2<Date, Integer>>> newRow ;
+            List<Tuple2<Tuple2<String,String>, List<Tuple2<Date,Long>>>> results = new ArrayList<>();
+            Tuple2<Tuple2<String,String>, List<Tuple2<Date,Long>>> newRow ;
 
-            List<Tuple2<Date, Integer>> dates = Lists.newArrayList( row._2);
+            List<Tuple2<Date,Long>> dates = Lists.newArrayList( row._2);
             dates.sort(Comparator.comparing(Tuple2::_1));
 
-            List<Tuple2<Date,Integer>> datesPerMonth = new ArrayList<>();
+            List<Tuple2<Date,Long>> datesPerMonth = new ArrayList<>();
 
 
             Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
@@ -155,11 +234,11 @@ public class Utils {
             int previousMonth = cal.get(Calendar.MONTH);
             int currentMonth = 0;
 
-            //List<Iterable<Tuple2<Date, Integer>>> daysByMonth = new ArrayList<>();
+            //List<Iterable<Tuple2<Date,Long>>> daysByMonth = new ArrayList<>();
             //Date date =
 
 
-            for (Tuple2<Date, Integer> date : dates) {
+            for (Tuple2<Date,Long> date : dates) {
 
                 cal.setTime(date._1);
                 currentMonth = cal.get(Calendar.MONTH);

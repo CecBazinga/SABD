@@ -122,6 +122,9 @@ public class Query2 {
 
 
 
+
+
+
     //Metodo che registra la UDF per fare la Regressione Lineare
     private static void registerRegressionUDF(SparkSession sSession, String udfName){
 
@@ -132,27 +135,8 @@ public class Query2 {
                     ArrayList<Integer> x = new ArrayList(JavaConverters.asJavaCollectionConverter(giorno).asJavaCollection());
                     ArrayList<Long> y = new ArrayList(JavaConverters.asJavaCollectionConverter(valore).asJavaCollection());
 
-                    SimpleRegression regression = new SimpleRegression();
 
-                    //Check per la size del dataset
-
-                    int len = x.size();
-
-                    if(len != y.size()){
-                        System.out.println("+++++++++++++++++++++ERRORE: il numero di giorni ed il numero di vaccinazioni non corrisponde\n" +
-                                "Verra selezionato il minimo valore.\n");
-                        len = Integer.min(len, y.size());
-                    }
-
-
-                    //Aggiunta dei dati al dataset
-                    for(int i = 0; i < len; i++)
-                        regression.addData((double) x.get(i), (double) y.get(i));
-
-                    double day = (double) Utils.getDaysPerMonth(data) + 1.0;
-                    
-                    //Computo della regressione TODO: calcolare numero giorni nei mesi in accordo
-                    return (long) regression.predict(day);
+                    return Utils.regression(x,y,data);
 
                 }, DataTypes.LongType);
 

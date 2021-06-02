@@ -75,7 +75,7 @@ public class MyFuckingClass {
 
 
 
-        //Nel caso in cui sia rilevante il giorno
+
 
 
         /*
@@ -89,28 +89,20 @@ public class MyFuckingClass {
 
 
 
-        /*
-        //df = df.withColumn( "data_somministrazione",to_date(col("data_somministrazione"), "yyyy-MM-dd"));
-
-        //Per la query 1 non serve sapere il giorno
-        Dataset<Row> dfSVSLQuery1 = dfSVSL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
-        dfSVSLQuery1 = dfSVSLQuery1.sort(col("data_somministrazione")).filter(col("data_somministrazione").gt(lit("2020-12-31")));
-
-
-
         //long timeQuery1 = Queries.computeQuery1(dfSVSLQuery1,dfPST,outputQueries);
 
         //long timeQuerySQL1 = Queries.computeQuery1SQL(dfSVSLQuery1,dfPST,outputQueries, sSession);
 
 
+        //1st query
+        //long time1 = Queries.computeQuery1(dfSVSL,dfPST,outputQueries);
         //2nd query
         long time2 = Queries.computeQuery2(dfSVL,outputQueries);
 
 
 
 
-         */
-        Query2.query2SQL(sSession, dfSVL);
+
 
 /*
 
@@ -189,7 +181,7 @@ public class MyFuckingClass {
 
 
 
-        TimeUnit.MINUTES.sleep(10);
+        //TimeUnit.MINUTES.sleep(10);
 
         sSession.close();
     }
