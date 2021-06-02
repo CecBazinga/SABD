@@ -27,9 +27,10 @@ Il cluster è stanziato usando Docker. I Dockerfile con i relativi file di confi
  
  Nella folder SparkClient è presente il codice sorgente dell'applicativo
 
-Per eseguire il setup del cluster e l'esecuzione dell'applicazione aprire un terminale ed eseguire
+Per eseguire il setup del cluster e l'esecuzione dell'applicazione aprire un terminale sulla folder del progetto ed eseguire
 
-```sudo ./start_cluster.sh```
+```cd cluster/scripts
+sudo ./start_cluster.sh```
 
 Questo comando farà la build delle varie Docker images e le eseguirà. Lo script sarà interattivo.
 
