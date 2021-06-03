@@ -84,3 +84,5 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
 - Aggiunti lo yarn-site.xml per gestire il funzionamento di YARN
 
 - Dire di zookeeper locale
+
+- Abbiamo voluto provare ad usare yarn e spark insieme
