@@ -23,7 +23,7 @@ public class HBaseConnector {
         conf = HBaseConfiguration.create(); 
         conf.set("hbase.master", "master:60000");
     	conf.set("hbase.zookeeper.quorum", "master");
-	conf.setInt("hbase.zookeeper.property.clientPort", 2181);
+	    conf.setInt("hbase.zookeeper.property.clientPort", 2181);
 	
         try {
             conn = ConnectionFactory.createConnection(conf);

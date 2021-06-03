@@ -62,6 +62,8 @@ Script e report per la creazione dell'ambiente di lavoro (Ubuntu 20.04)
   nifi levare colonne superflue subito
 
   Menzionate località dei dati usando Hadoop con spark
+
+  Menzionare che scrittura su HBase va fatta singolarmente e non in parallelo perchè senno i dati non vengono ordinati
   
  
  
