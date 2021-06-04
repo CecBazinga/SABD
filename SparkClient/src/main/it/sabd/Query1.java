@@ -1,20 +1,19 @@
 package it.sabd;
 
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.rdd.RDD;
+import org.apache.spark.sql.*;
 import scala.Tuple2;
 
-import java.util.Date;
+import java.util.*;
 
 import static org.apache.spark.sql.functions.*;
 
 public class Query1 {
 
 
-    public static void computeQuery1(SparkSession sSession){
+    public static void computeQuery1(SparkSession sSession, Dataset<Row> dfSVSLQuery1, Dataset<Row> dfPSTQuery1){
 
 
         System.out.println("\n\n################################## QUERY 1 ##################################\n");
@@ -25,23 +24,23 @@ public class Query1 {
 
 
 
-        //Preparazione e filtraggio del dataset (creazione di nuovi dataset per evitare modifica per reference)
+        //Preparazione e filtraggio del dataset
 
         //Load dei dataset
 
         //TODO: caricare dataset una volta sola perchè dato immutabile
 
-        Dataset<Row> dfSVSL = Utils.getDFSVSL(sSession);
-        Dataset<Row> dfPST  = Utils.getDFPST(sSession);
+        Dataset<Row> dfSVSL = dfSVSLQuery1;
+        Dataset<Row> dfPST  = dfPSTQuery1;
 
         //Per la query 1 non serve sapere il giorno
         dfSVSL = dfSVSL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"), "yyyy-LL")));
 
         //Sorting e filtraggio del dataset
         dfSVSL = dfSVSL.filter(col("data_somministrazione").gt(lit("2020-12-31")));
-        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").lt(lit("2021-06-01"))); //TODO: check che effettivamente il dataset non va oltre 1 giugno
+        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").lt(lit("2021-06-01")));
 
-        long timeQuery1Spark = computeQuery1Spark(dfSVSL, dfPST, destinationPath);
+        long timeQuery1Spark = computeQuery1Spark(dfSVSL, dfPST, destinationPath, sSession);
 
         long timeQuery1SQL   = computeQuery1SQL(dfSVSL, dfPST, destinationPath, sSession);
 
@@ -61,15 +60,13 @@ public class Query1 {
 
 
 
-    private static long computeQuery1Spark(Dataset<Row> dfSVSL, Dataset<Row> dfPST, String destinationPath){
+    private static long computeQuery1Spark(Dataset<Row> dfSVSL, Dataset<Row> dfPST, String destinationPath, SparkSession sSession){
 
 
         System.out.println("\n\n********************************** QUERY 1 SPARK ************************************** \n");
 
         //Tracciamento del tempo
         long startTime = System.nanoTime();
-
-        //TODO *** siccome si chiede di ordinare il file all'inizio del processamento, vogliamo anche partizionare l'rdd in base alle date?
 
 
         //Convert dataframe to rdd taking only desired columns
@@ -103,7 +100,7 @@ public class Query1 {
 
 
         //Rdd with date , region and mean values of daily vaccines per center
-        JavaPairRDD<Date,Tuple2<String, Double>> finalPairRdd = rddJoin.mapToPair(x -> (new Tuple2<Date,Tuple2<String,Double>>
+        JavaPairRDD<Date, Tuple2<String, Double>> finalPairRdd = rddJoin.mapToPair(x -> (new Tuple2<Date, Tuple2<String, Double>>
                 (x._2._1._1, new Tuple2<String, Double>(x._1, Utils.computeDailyDoses(x._2._1._1, ((double) x._2._1._2 / x._2._2))))));
 
         //TODO *** DO we persist in cache this rdd ? https://stackoverflow.com/questions/28981359/why-do-we-need-to-call-cache-or-persist-on-a-rdd
@@ -117,19 +114,46 @@ public class Query1 {
                 (x._1, new Tuple2<String, Double>(Utils.regionNameConverter(x._2._1), x._2._2)))).sortByKey();
 
 
-        JavaPairRDD<String, Tuple2<String, Double>> finalRdd = extendedNamesRdd.mapToPair(x -> (new Tuple2<String, Tuple2<String, Double>>
-                (Utils.dateConverter(x._1),new Tuple2<String, Double>(x._2._1, x._2._2))));
+        JavaPairRDD<String, Tuple2<String, String>> finalRdd = extendedNamesRdd.mapToPair(x -> (new Tuple2<String, Tuple2<String, String>>
+                (Utils.dateConverter(x._1), new Tuple2<String, String>(x._2._1, String.format("%.2f", x._2._2).replace(",", ".")))));
 
         long endTime = System.nanoTime();
 
-        System.out.println("\n\n*************************************************************************************** \n");
+        finalRdd = finalRdd.coalesce(1);
+
+        finalRdd.cache();
+
+        //Preparazione del RDD per la scrittura su HDFS in formato CSV
+
+        List<String> header = Collections.singletonList("mese,area,valore_medio");
+
+        JavaSparkContext sc = new JavaSparkContext(sSession.sparkContext());
+        RDD<String> headerRDD = sc.parallelize(header).rdd();
+        RDD<String> saveRDD = finalRdd.map(x-> x._1 + "," + x._2._1 + "," + x._2._2).rdd();
+        saveRDD = headerRDD.union(saveRDD);
+
+        //Raggruppamento in un singolo RDD ordinato
+        saveRDD = saveRDD.repartition(1, null);
 
 
-        //TODO: print in modo decente del CSV, aggiungre .mode(SaveMode.Overwrite)
+
+        if(Utils.DEBUG){
+            finalRdd.foreach(x ->{
+                System.out.println("Printing: " + x);
+            });
+        }
+
         try {
-            finalRdd.coalesce(1).saveAsTextFile(destinationPath + "Query1Spark");
+
+            saveRDD.saveAsTextFile(destinationPath + "Query1Spark");
+
+            //Scrittura su HBase
+            HBaseConnector.getInstance().SaveQuery1(finalRdd);
 
         } catch (Exception e) { e.printStackTrace(); }
+
+        System.out.println("\n\n*************************************************************************************** \n");
+
 
         return (endTime - startTime);
     }

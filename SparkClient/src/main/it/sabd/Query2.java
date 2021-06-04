@@ -2,10 +2,10 @@ package it.sabd;
 
 
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.rdd.RDD;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.api.java.UDF2;
 import org.apache.spark.sql.api.java.UDF3;
 import org.apache.spark.sql.types.DataTypes;
@@ -15,6 +15,7 @@ import scala.collection.JavaConverters;
 import scala.collection.mutable.WrappedArray;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class Query2 {
 
 
 
-    public static void computeQuery2(SparkSession sSession){
+    public static void computeQuery2(SparkSession sSession,  Dataset<Row> dfSVLQuery2){
 
 
         System.out.println("\n\n################################## QUERY 2 ##################################\n");
@@ -37,11 +38,11 @@ public class Query2 {
 
 
 
-        //Preparazione e filtraggio del dataset (creazione di nuovi dataset per evitare modifica per reference)
+        //Preparazione e filtraggio del dataset
 
         //Load dei dataset
 
-        Dataset<Row> dfSVL = Utils.getDFSVL(sSession);
+        Dataset<Row> dfSVL = dfSVLQuery2;
 
 
 
@@ -52,7 +53,7 @@ public class Query2 {
         dfSVL = dfSVL.filter(col("data_somministrazione").geq(lit("2021-02-01")));
         dfSVL = dfSVL.sort(col("data_somministrazione")).filter(col("data_somministrazione").lt(lit("2021-06-01")));
 
-        long timeQuery2Spark = computeQuery2Spark(dfSVL, destinationPath);
+        long timeQuery2Spark = computeQuery2Spark(dfSVL, destinationPath, sSession);
 
         long timeQuery2SQL = computeQuery2SQL(dfSVL, destinationPath, sSession);
 
@@ -67,8 +68,8 @@ public class Query2 {
 
     }
 
-    //TODO: mettere il codice della query come le altre (separare virgole e aggiungere stampe varie)
-    private static long computeQuery2Spark(Dataset<Row> dfSVL, String destinationPath){
+    //TODO: commentare query 2
+    private static long computeQuery2Spark(Dataset<Row> dfSVL, String destinationPath, SparkSession sSession){
 
 
         System.out.println("\n\n********************************** QUERY 2 SPARK ************************************** \n");
@@ -99,7 +100,7 @@ public class Query2 {
         JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date,Long>>> filteredRddByMonth = rddByMonth.filter(x -> x._2.size() > 1);
 
         JavaPairRDD<String, Iterable<Tuple2<String, Long>>> predictedRdd = filteredRddByMonth.mapToPair(x ->
-                new Tuple2<>(Utils.firstDayNextMonth(x._2.get(0)._1) + " " + x._1._2,new Tuple2<>(x._1._1, Utils.applyRegression(x._2))))
+                new Tuple2<>(Utils.firstDayNextMonth(x._2.get(0)._1) + " " + x._1._2,new Tuple2<>(Utils.regionNameConverter(x._1._1), Utils.applyRegression(x._2))))
                 .groupByKey()
                 .sortByKey();
 
@@ -108,23 +109,43 @@ public class Query2 {
                 new Tuple2<String, List<Tuple2<String,Long>>>(x._1, Utils.iterableToListTop5(x._2)));
 
 
+        //Raggruppamento
         orderedRdd = orderedRdd.coalesce(1);
-        //.sortByKey(new TupleComparator(Comparator.<Date>naturalOrder(),Comparator.<Long>naturalOrder()));;
-
-        orderedRdd.foreach(x->{ //TODO: metti stampe in debug
-            System.out.println("Printing: " + x);
-        });
-
-
 
 
         long endTime = System.nanoTime();
 
+
+        //Preparazione del RDD per la scrittura su HDFS in formato CSV
+
+        List<String> header = Collections.singletonList("anno-fascia,area_1,previsione_1,area_2,previsione_2,area_3,previsione_3,area_4,previsione_4,area_5,previsione_5");
+
+        JavaSparkContext sc = new JavaSparkContext(sSession.sparkContext());
+        RDD<String> headerRDD = sc.parallelize(header).rdd();
+        JavaRDD<String> saveJavaRDD = orderedRdd.map(x -> x._1 + "," + x._2.toString().replace("[(","").replace(")]","").replace("(","").replace(")", "").replace(" ", ""));
+
+        if(Utils.DEBUG) {
+            saveJavaRDD.foreach(x -> {
+                System.out.println("Printing: " + x);
+            });
+        }
+
+
+
         System.out.println("\n\n*************************************************************************************** \n");
+
+
+        RDD<String> saveRDD = headerRDD.union(saveJavaRDD.rdd());
+
+        //Raggruppamento in un singolo RDD ordinato
+        saveRDD = saveRDD.repartition(1, null);
 
         try {
 
-            orderedRdd.saveAsTextFile(destinationPath + "Query2Spark");
+            saveRDD.saveAsTextFile(destinationPath + "Query2Spark");
+
+            HBaseConnector.getInstance().SaveQuery2(orderedRdd);
+
         } catch (Exception e) { e.printStackTrace(); }
 
         return (endTime-startTime);
@@ -326,7 +347,7 @@ public class Query2 {
                     int len = areas.size();
 
                     if(len != regression.size()){
-                        System.out.println("+++++++++++++++++++++ERRORE: il numero di aree ed il numero di valori regressi non corrisponde\n" +
+                        System.out.println("ERRORE: il numero di aree ed il numero di valori regressi non corrisponde\n" +
                                 "Verra selezionato il minimo valore.\n");
                     }
 

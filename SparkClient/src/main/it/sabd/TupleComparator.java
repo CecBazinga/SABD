@@ -8,6 +8,7 @@ import java.util.Comparator;
 
 
 
+//Classe per comparare le tuple per la Query 2
 
 public class TupleComparator<Date,Long> implements Comparator<Tuple3<Date,Long,Long>>, Serializable {
 

@@ -8,6 +8,14 @@ service ssh start
 # Launch bash console  
 /bin/bash
 
+cd /usr/local
+
+echo "Esecuzione dell'applicazione..."
+
+spark-submit --class it.sabd.QueryExecutor --master yarn --deploy-mode client sparkapp.jar 
+
+echo "Applicazione terminata"
+
 
 
 

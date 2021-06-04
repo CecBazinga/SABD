@@ -7,28 +7,45 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.spark.api.java.JavaPairRDD;
+import scala.Tuple2;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
+//Connettore con HBase implementato come singleton
 public class HBaseConnector {
 
     private static HBaseConnector instance = null;
     private Admin admin;
     private Connection conn;
-    private Configuration conf;
 
     private HBaseConnector(){
 
 
-        // Instantiating configuration class
-        conf = HBaseConfiguration.create(); 
+        System.out.println("Connessione con HBASE");
+
+        //Creazione della configutazione
+        Configuration conf = HBaseConfiguration.create();
+
+        /*
+
         conf.set("hbase.master", "master:60000");
     	conf.set("hbase.zookeeper.quorum", "master");
 	    conf.setInt("hbase.zookeeper.property.clientPort", 2181);
+
+	    */
 	
         try {
+
+            //Connessione con HBASE
             conn = ConnectionFactory.createConnection(conf);
             admin  = conn.getAdmin();
+
         } catch (Exception e) { e.printStackTrace(); }
+
+        System.out.println("Connessione effettuata con successo");
 
     }
 
@@ -40,35 +57,97 @@ public class HBaseConnector {
 
     }
 
-    public void run(){
+    public void SaveQuery1(JavaPairRDD<String, Tuple2<String, String>> rdd){
 
         try {
-            // Instantiating table descriptor class
+
+            //Creazione di una nuova tabella
             HTableDescriptor tableDescriptor = new
-                    HTableDescriptor(TableName.valueOf("emp"));
+                    HTableDescriptor(TableName.valueOf("Query1"));
 
-            // Adding column families to table descriptor
-            tableDescriptor.addFamily(new HColumnDescriptor("personal"));
-            tableDescriptor.addFamily(new HColumnDescriptor("professional"));
+            //Aggiunta famiglia di colonne
+            tableDescriptor.addFamily(new HColumnDescriptor("Valore"));
 
-            // Execute the table through admin
+            //Aggiunta tabella
             admin.createTable(tableDescriptor);
-            System.out.println(" Table created ");
 
-            Table htable = conn.getTable(TableName.valueOf("emp"));
+            System.out.println("Tabella creata con successo");
 
-            Put p = new Put(Bytes.toBytes("row1"));
+            Table htable = conn.getTable(TableName.valueOf("Query1"));
 
-            p.addColumn(Bytes.toBytes("personal"), Bytes.toBytes("colonna1"),Bytes.toBytes("ciao"));
+            //Aggiunta dei dati alla tabella
 
-            htable.put(p);
+            //TODO: fai dataset = dataset.coalescence(1) sempre
 
-            /*
-            Boolean b = admin.isTableDisabled(TableName.valueOf("emp"));
-            if(!b){
-                admin.disableTable(TableName.valueOf("emp"));
-                admin.deleteTable(TableName.valueOf("emp"));
-            }*/
+            List<Put> puts = new ArrayList<>();
+            List<Tuple2<String, Tuple2<String, String>>> rddList =  rdd.collect();
+
+
+
+            for(Tuple2<String, Tuple2<String, String>> x : rddList ) {
+
+                Put p = new Put(Bytes.toBytes(x._1 + "-" + x._2._1));
+                p.addColumn(Bytes.toBytes("Valore"), Bytes.toBytes("col"), Bytes.toBytes(x._2._2));
+
+                puts.add(p);
+            }
+
+
+            htable.put(puts);
+
+            System.out.println("Scrittura effettuata con successo");
+
+
+            htable.close();
+
+
+        } catch(Exception e) { e.printStackTrace(); }
+
+    }
+
+
+    public void SaveQuery2(JavaPairRDD<String , List<Tuple2<String,Long>>> rdd){
+
+        try {
+
+            //Creazione di una nuova tabella
+            HTableDescriptor tableDescriptor = new
+                    HTableDescriptor(TableName.valueOf("Query2"));
+
+            //Aggiunta famiglia di colonne
+            tableDescriptor.addFamily(new HColumnDescriptor("Classifica"));
+
+            //Aggiunta tabella
+            admin.createTable(tableDescriptor);
+
+            System.out.println("Tabella creata con successo");
+
+            Table htable = conn.getTable(TableName.valueOf("Query2"));
+
+
+            //Necessaria trasformazione per rendere RDD serializzabile
+            JavaPairRDD<String, String> rddSerializable = rdd.mapToPair(x -> new Tuple2<>(x._1, x._2.toString()));
+
+            List<Put> puts = new ArrayList<>();
+            List<Tuple2<String, String>> rddList = rddSerializable.collect();
+
+
+
+            for(Tuple2<String, String> x : rddList ) {
+                Put p = new Put(Bytes.toBytes(x._1));
+                p.addColumn(Bytes.toBytes("Classifica"), Bytes.toBytes("col"), Bytes.toBytes(x._2));
+
+                puts.add(p);
+
+            }
+
+
+            htable.put(puts);
+
+            System.out.println("Scrittura effettuata con successo");
+
+
+            htable.close();
 
 
         } catch(Exception e) { e.printStackTrace(); }

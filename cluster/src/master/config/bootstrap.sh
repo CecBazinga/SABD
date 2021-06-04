@@ -20,7 +20,8 @@ $HBASE_HOME/bin/start-hbase.sh
 echo "Hbase cluster started"
 
 
-echo "+++++++ CLUSTER STARTED SUCCESFULLY +++++++"
+echo "+++++++ CLUSTER Inizializzato con successo +++++++"
+echo "Ora è possibile procedere con l'esecuzione sul terminale principale"
 
 # Launch bash console  
 /bin/bash
