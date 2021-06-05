@@ -84,3 +84,5 @@ I dataset di input vengono scaricati ad ogni esecuzione, non vi è quindi una da
  - Base 1.4.13
 
  - Nifi 1.13.2
+
+ - Parquet
