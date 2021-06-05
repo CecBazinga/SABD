@@ -24,6 +24,7 @@ RUN wget https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.ta
 
 RUN wget https://downloads.apache.org/hbase/1.4.13/hbase-1.4.13-bin.tar.gz; tar -zxf hbase-1.4.13-bin.tar.gz -C /usr/local/; rm hbase-1.4.13-bin.tar.gz;
 
+
 RUN cd /usr/local && ln -s ./hadoop-3.2.2 hadoop
 RUN cd /usr/local && ln -s ./hbase-1.4.13 hbase
 

@@ -10,8 +10,6 @@ hdfs namenode -format
 
 $HADOOP_HOME/sbin/start-all.sh
 
-hdfs dfs -put /usr/local/files /files
-
 echo "Hadoop cluster succesfully started"
 
 #Start HBase
