@@ -29,6 +29,19 @@ echo "Premere ENTER dopo che sul terminale appena aperto viene indicato che il c
 
 read input
 
+
+echo ""
+echo ""
+echo "++++++ Running di Nifi ++++++"
+
+x-terminal-emulator -e docker run -t -i -p 8180:8080 --network=hadoop_network --name=nifi nifi-image
+
+echo ""
+echo ""
+echo "Premere ENTER dopo che è stato fatto l'import e l'esecuzione del flow.xml da Nifi (verificare sul master con il comando 'hdfs dfs -ls /files' che sono presenti i 4 file di input)"
+
+read input
+
 echo "++++++ Running del Client ++++++"
 echo ""
 

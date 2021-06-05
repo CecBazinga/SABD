@@ -36,8 +36,9 @@ Questo comando farà la build delle varie Docker images e le eseguirà. Lo scrip
 
 Inizializzato il cluster e Nifi, prima dell'esecuzione dell'applicazione Spark è necessario collegarsi a ```localhost:8180/nifi``` ed eseguire l'import del template ed eseguirlo. Il template è situato in ```cluster/src/nifi/flow.xml```
 
-Uscire con CTRL-D dalle varie shell nel seguente ordine
+Uscire con CTRL-D p CTRL-C dalle varie shell nel seguente ordine
  1) Cluster (Hadoop)
+ 1) Nifi
  2) Client  (Spark)
  
 #### NB:
@@ -58,7 +59,7 @@ Per avere un output più comprensibile durante l'esecuzione dell'applicativo, so
  		
 	+ http://localhost:8088   		               (Hadoop e YARN) 
  	+ http://localhost:9870   		               (HDFS)  
- 	+ http://master:8080/proxy/{app_id}   	(Spark) (L'URL esatto è presente all'inizio del log del client Spark, dove è necessario sostituire "localhost" con "master")
+ 	+ http://localhost:8088/proxy/{app_id}   	(Spark) (L'URL esatto è presente all'inizio del log del client Spark, dove è necessario sostituire "localhost" con "master")
  	+ http://localhost:60010  		               (HBase)
 	
 (se 8088 non risponde, provare 8080)  

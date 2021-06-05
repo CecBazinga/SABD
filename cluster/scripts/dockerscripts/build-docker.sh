@@ -8,3 +8,5 @@ docker build -t client-image ../src/client
 
 rm -r ../src/client/SparkClient
 
+
+docker build -t nifi-image ../src/nifi
