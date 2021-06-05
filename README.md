@@ -81,7 +81,7 @@ I dataset di input vengono scaricati ad ogni esecuzione, non vi è quindi una da
 
  - ZooKeeper
 
- - Base 1.4.13
+ - HBase 1.4.13
 
  - Nifi 1.13.2
 
