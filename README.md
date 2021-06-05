@@ -13,7 +13,7 @@ Team composto da:
 
  - Installare Containerd, Docker CE CLI e Docker CE (Engine)
  
- - [OPZIONALE] ```sudo docker run hello-world``` per testare docker
+ - [OPZIONALE] ``` sudo docker run hello-world ``` per testare docker
  
 
 ### Setup del cluster e dell'applicazione
@@ -28,9 +28,9 @@ Il cluster è stanziato usando Docker. I Dockerfile con i relativi file di confi
 
 Per eseguire il setup del cluster e l'esecuzione dell'applicazione aprire un terminale sulla folder del progetto ed eseguire
 
-```cd cluster/scripts
-sudo ./start_cluster.sh```
-
+``` cd cluster/scripts
+sudo ./start_cluster.sh 
+```
 Questo comando farà la build delle varie Docker images e le eseguirà. Lo script sarà interattivo.
 
 Uscire con CTRL-D dalle varie shell nel seguente ordine
