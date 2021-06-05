@@ -58,9 +58,7 @@ ADD config/workers $HADOOP_HOME/etc/hadoop/workers
 #conf hbase
 RUN echo "export JAVA_HOME=/usr" >> $HBASE_HOME/conf/hbase-env.sh
 
-
-# Add Files (DA LEVARE!)
-ADD files /usr/local/files   	
+ 	
 # 
 ADD config/ssh_config /root/.ssh/config
 RUN chmod 600 /root/.ssh/config

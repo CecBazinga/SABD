@@ -27,9 +27,6 @@ public class Query1 {
         //Preparazione e filtraggio del dataset
 
         //Load dei dataset
-
-        //TODO: caricare dataset una volta sola perchè dato immutabile
-
         Dataset<Row> dfSVSL = dfSVSLQuery1;
         Dataset<Row> dfPST  = dfPSTQuery1;
 
@@ -38,7 +35,8 @@ public class Query1 {
 
         //Sorting e filtraggio del dataset
         dfSVSL = dfSVSL.filter(col("data_somministrazione").gt(lit("2020-12-31")));
-        dfSVSL = dfSVSL.sort(col("data_somministrazione")).filter(col("data_somministrazione").lt(lit("2021-06-01")));
+        dfSVSL = dfSVSL.filter(col("data_somministrazione").lt(lit("2021-06-01")));
+        dfSVSL = dfSVSL.sort(col("data_somministrazione"));
 
         long timeQuery1Spark = computeQuery1Spark(dfSVSL, dfPST, destinationPath, sSession);
 
@@ -65,37 +63,35 @@ public class Query1 {
 
         System.out.println("\n\n********************************** QUERY 1 SPARK ************************************** \n");
 
-        //Tracciamento del tempo
-        long startTime = System.nanoTime();
 
-
-        //Convert dataframe to rdd taking only desired columns
+        //Conversione dataframe a rdd con solo le colonne desiderate
         JavaPairRDD<Tuple2<Date, String>, Integer> rddpairSVSL = dfSVSL.toJavaRDD().mapToPair(x -> new Tuple2<Tuple2<Date, String>, Integer>
                 (new Tuple2<Date, String>(x.getDate(0), x.getString(1)), x.getInt(2)));
 
-        //Persist the rdd because was a large transformation from all dataframe to 3 columns rdd
         rddpairSVSL.cache();
 
-        //Before sending data across the partitions, reduceByKey() merges the data locally using the same associative
-        //function for optimized data shuffling
+
+        //Conversione dataframe a rdd con solo le colonne desiderate
+        JavaPairRDD<String, Integer> dfPSTPairs = dfPST.toJavaRDD().mapToPair(row -> new Tuple2<String, Integer>(row.getString(0), 1));
+
+        dfPSTPairs.cache();
+
+
+        //Tracciamento del tempo
+        long startTime = System.nanoTime();
+
+        JavaPairRDD<String, Integer> dfPSTCount = dfPSTPairs.reduceByKey((x, y) -> x + y);
+
+        //Prima di mandare dai dati tra le partizioni, reduceByKey() fa merge dei dati localmente
         JavaPairRDD<Tuple2<Date, String>, Integer> regionalSomministrationsPerMonth = rddpairSVSL.reduceByKey((x, y) -> x + y);
 
-        //Trasform regionalSomministrationsPerMonth isolating area attribute as key so it can be joined with dfPSTCount rdd
-        JavaPairRDD<String,Tuple2<Date,Integer>> regionalSomministrationsPerMonthJoinable = regionalSomministrationsPerMonth.
+        //Trasforma regionalSomministrationsPerMonth isolando l'attributo "area" come key per il join con dfPST
+        JavaPairRDD<String, Tuple2<Date, Integer>> regionalSomministrationsPerMonthJoinable = regionalSomministrationsPerMonth.
                 mapToPair(x -> new Tuple2<String, Tuple2<Date, Integer>>(x._1._2, new Tuple2<Date, Integer>(x._1._1, x._2)));
 
 
 
-        //Operators relative to PuntiSomministrazioneTipologia file
-        JavaPairRDD<String, Integer> dfPSTPairs = dfPST.toJavaRDD().mapToPair(row -> new Tuple2<String, Integer>(row.getString(0), 1));
-
-        //Persist the rdd because was a large transformation from all dataframe to 3 columns rdd
-        dfPSTPairs.cache();
-
-        JavaPairRDD<String, Integer> dfPSTCount = dfPSTPairs.reduceByKey((x, y) -> x + y);
-
-
-        //Rdds join on area attribute
+        //Join sull'attributo area
         JavaPairRDD<String, Tuple2<Tuple2<Date, Integer>, Integer>> rddJoin = regionalSomministrationsPerMonthJoinable.join(dfPSTCount);
 
 
@@ -103,28 +99,26 @@ public class Query1 {
         JavaPairRDD<Date, Tuple2<String, Double>> finalPairRdd = rddJoin.mapToPair(x -> (new Tuple2<Date, Tuple2<String, Double>>
                 (x._2._1._1, new Tuple2<String, Double>(x._1, Utils.computeDailyDoses(x._2._1._1, ((double) x._2._1._2 / x._2._2))))));
 
-        //TODO *** DO we persist in cache this rdd ? https://stackoverflow.com/questions/28981359/why-do-we-need-to-call-cache-or-persist-on-a-rdd
-        //TODO: cache() ogni volta che RDD branches
 
         finalPairRdd.cache();
 
-        // Preferred apply a UDF to an rdd rather than use a join with another rdd having only region short and extended name
-        // and rather than keeping the name column along all the other rdds and calculations
+
+        long endTime = System.nanoTime();
+
+        //Traduzione del dataset in un formato più user-friendly
+
+        //Traduzione di sigle regionali in forma estesa invece di tenere colonna aggiuntiva nel RDD
         JavaPairRDD<Date, Tuple2<String, Double>> extendedNamesRdd = finalPairRdd.mapToPair(x -> (new Tuple2<Date, Tuple2<String, Double>>
                 (x._1, new Tuple2<String, Double>(Utils.regionNameConverter(x._2._1), x._2._2)))).sortByKey();
 
-
         JavaPairRDD<String, Tuple2<String, String>> finalRdd = extendedNamesRdd.mapToPair(x -> (new Tuple2<String, Tuple2<String, String>>
                 (Utils.dateConverter(x._1), new Tuple2<String, String>(x._2._1, String.format("%.2f", x._2._2).replace(",", ".")))));
-
-        long endTime = System.nanoTime();
 
         finalRdd = finalRdd.coalesce(1);
 
         finalRdd.cache();
 
         //Preparazione del RDD per la scrittura su HDFS in formato CSV
-
         List<String> header = Collections.singletonList("mese,area,valore_medio");
 
         JavaSparkContext sc = new JavaSparkContext(sSession.sparkContext());
@@ -137,17 +131,22 @@ public class Query1 {
 
 
 
+
         if(Utils.DEBUG){
+
+
             finalRdd.foreach(x ->{
-                System.out.println("Printing: " + x);
+                System.out.println("Printing Query1: " + x);
             });
         }
+
+
+        //Scrittura su HDFS e HBase
 
         try {
 
             saveRDD.saveAsTextFile(destinationPath + "Query1Spark");
 
-            //Scrittura su HBase
             HBaseConnector.getInstance().SaveQuery1(finalRdd);
 
         } catch (Exception e) { e.printStackTrace(); }
@@ -197,9 +196,9 @@ public class Query1 {
                 "SELECT area, count(area) as centri_tot " +
                         "FROM PST " +
                         "GROUP BY area");
+
         //Creazione view
         dfPSTAverage.createOrReplaceTempView("PST_average");
-
 
 
         if(Utils.DEBUG) {
@@ -209,8 +208,6 @@ public class Query1 {
 
             System.out.println("\n\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
         }
-
-
 
         //Calcolo del valore medio di vaccini effettuati in un mese da un centro vaccinale di una regione
         Dataset<Row> dfSVSLCenterAverage = sSession.sql(
@@ -244,8 +241,10 @@ public class Query1 {
         long endTime = System.nanoTime();
 
 
-
         System.out.println("\n\n*************************************************************************************** \n");
+
+
+        //Scrittura su HDFS
         try {
             dfSVSLCenterAverage.coalesce(1)
                     .write().format("csv")

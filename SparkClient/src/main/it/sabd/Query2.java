@@ -13,12 +13,10 @@ import scala.Tuple2;
 import scala.Tuple3;
 import scala.collection.JavaConverters;
 import scala.collection.mutable.WrappedArray;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-
 import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.functions.callUDF;
 import static org.apache.spark.sql.functions.col;
@@ -41,7 +39,6 @@ public class Query2 {
         //Preparazione e filtraggio del dataset
 
         //Load dei dataset
-
         Dataset<Row> dfSVL = dfSVLQuery2;
 
 
@@ -51,7 +48,8 @@ public class Query2 {
 
         //Sorting e filtraggio del dataset
         dfSVL = dfSVL.filter(col("data_somministrazione").geq(lit("2021-02-01")));
-        dfSVL = dfSVL.sort(col("data_somministrazione")).filter(col("data_somministrazione").lt(lit("2021-06-01")));
+        dfSVL = dfSVL.filter(col("data_somministrazione").lt(lit("2021-06-01")));
+        dfSVL = dfSVL.sort(col("data_somministrazione"));
 
         long timeQuery2Spark = computeQuery2Spark(dfSVL, destinationPath, sSession);
 
@@ -68,7 +66,8 @@ public class Query2 {
 
     }
 
-    //TODO: commentare query 2
+
+
     private static long computeQuery2Spark(Dataset<Row> dfSVL, String destinationPath, SparkSession sSession){
 
 
@@ -77,47 +76,43 @@ public class Query2 {
 
         long startTime = System.nanoTime();
 
-        dfSVL = dfSVL.withColumn( "data_somministrazione",to_date(date_format(col("data_somministrazione"),
-                "yyyy-LL-dd"))).filter(col("data_somministrazione").gt(lit("2021-01-31")));
-
-
-
+        //Conversione a JavaPairRDD da Dataset con riduzione sommando i valori di somministrazione vaccini per donna tra tutti i possibili fornitori
+        // di vaccini
         JavaPairRDD<Tuple3<Date,String, String>, Long> avoidCloneDaysRdd = dfSVL.toJavaRDD().mapToPair(x -> new Tuple2<Tuple3< Date,String,String>,Long>
-                (new Tuple3<>(x.getDate(0),x.getString(2),x.getString(3)), (long) x.getInt(5))).reduceByKey((x, y) -> x+y);
+                (new Tuple3<>(x.getDate(0),x.getString(1),x.getString(2)), (long) x.getInt(3))).reduceByKey((x, y) -> x + y);
 
-
-
+        //Raggruppamento per ogni coppia {regione, fascia d'età} di tutti i giorni di vaccinazione con relativo numero di somministrazioni
         JavaPairRDD<Tuple2<String, String>, Iterable<Tuple2<Date,Long>>> rddpairSVL = avoidCloneDaysRdd.mapToPair(x ->
-                new Tuple2<>(new Tuple2<>(x._1._2(),x._1._3()), new Tuple2<>(x._1._1(), x._2))).groupByKey();
-
-
+                new Tuple2<>(new Tuple2<>(x._1._2(), x._1._3()), new Tuple2<>(x._1._1(), x._2))).groupByKey();
 
         rddpairSVL.cache();
 
-
+        //Per ogni coppia {regione, fascia d'età} vengono raggruppati i giorni di quel mese
         JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date, Long>>> rddByMonth = rddpairSVL.flatMapToPair(new Utils.daysGroupedByMonth());
 
+        //Filtraggio del RDD dove scartiamo quelle coppie {regione, fascia d'età} che hanno meno di 2 giorni di campagna vaccinale
+        // (giorni con 0 somministrazioni per le donne vengono comunque mantenuti)
         JavaPairRDD<Tuple2<String, String>, List<Tuple2<Date,Long>>> filteredRddByMonth = rddByMonth.filter(x -> x._2.size() > 1);
 
+        //Conversione del nome della regione e applicazione della regressione
         JavaPairRDD<String, Iterable<Tuple2<String, Long>>> predictedRdd = filteredRddByMonth.mapToPair(x ->
                 new Tuple2<>(Utils.firstDayNextMonth(x._2.get(0)._1) + " " + x._1._2,new Tuple2<>(Utils.regionNameConverter(x._1._1), Utils.applyRegression(x._2))))
                 .groupByKey()
                 .sortByKey();
 
-
-        JavaPairRDD<String , List<Tuple2<String,Long>>> orderedRdd = predictedRdd.mapToPair(x ->
-                new Tuple2<String, List<Tuple2<String,Long>>>(x._1, Utils.iterableToListTop5(x._2)));
-
-
-        //Raggruppamento
-        orderedRdd = orderedRdd.coalesce(1);
+        //Raccolta della Top-5 per ogni {regione, fascia d'età}
+        JavaPairRDD<String , List<Tuple2<String, Long>>> orderedRdd = predictedRdd.mapToPair(x ->
+                new Tuple2<String, List<Tuple2<String, Long>>>(x._1, Utils.iterableToListTop5(x._2)));
 
 
         long endTime = System.nanoTime();
 
 
-        //Preparazione del RDD per la scrittura su HDFS in formato CSV
+        //Raggruppamento in una singola partizione
+        orderedRdd = orderedRdd.coalesce(1);
 
+
+        //Preparazione del RDD per la scrittura su HDFS in formato CSV
         List<String> header = Collections.singletonList("anno-fascia,area_1,previsione_1,area_2,previsione_2,area_3,previsione_3,area_4,previsione_4,area_5,previsione_5");
 
         JavaSparkContext sc = new JavaSparkContext(sSession.sparkContext());
@@ -126,7 +121,7 @@ public class Query2 {
 
         if(Utils.DEBUG) {
             saveJavaRDD.foreach(x -> {
-                System.out.println("Printing: " + x);
+                System.out.println("Printing Query 2: " + x);
             });
         }
 
@@ -140,6 +135,7 @@ public class Query2 {
         //Raggruppamento in un singolo RDD ordinato
         saveRDD = saveRDD.repartition(1, null);
 
+        //Scrittura su HBase e HDFS
         try {
 
             saveRDD.saveAsTextFile(destinationPath + "Query2Spark");
@@ -293,6 +289,8 @@ public class Query2 {
 
         System.out.println("\n\n*************************************************************************************** \n");
 
+
+        //Scrittura su HDFS
         try {
             dfSVLLeaderboard.coalesce(1)
                     .write().format("csv")
@@ -330,7 +328,7 @@ public class Query2 {
 
     }
 
-    //Metodo che registra la UDF per fare la Regressione Lineare
+    //Metodo che registra la UDF per decretare la Top-5
     private static void registerTop5UDF(SparkSession sSession, String udfName){
 
 
