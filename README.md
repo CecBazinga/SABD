@@ -11,8 +11,7 @@ Team composto da:
 
  - Distro Linux (Sviluppato e testato su Ubuntu 18 e 20) 
 
- - Installare Containerd, Docker CE CLI e Docker CE (Engine) da: https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/
-   (Per installarli è necessario fare ```sudo dpkg -i path/to/package``` nell'ordine specificato sopra.)
+ - Installare Containerd, Docker CE CLI e Docker CE (Engine)
  
  - [OPZIONALE] ```sudo docker run hello-world``` per testare docker
  
