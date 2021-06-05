@@ -21,6 +21,7 @@ Team composto da:
   	
 Il cluster è stanziato usando Docker. I Dockerfile con i relativi file di configurazione sono presenti nella cartella "cluster". All'interno sono presenti le folder per le build relative ai vari nodi:
  - client: Eseguirà l'applicazione Spark in modalità "client"
+ - Nifi: si occuperà della data ingestion
  - master: Nodo master dell'architettura Hadoop, Hbase e Zookeeper
  - slave: Nodo worker del cluster
  
@@ -32,6 +33,8 @@ Per eseguire il setup del cluster e l'esecuzione dell'applicazione aprire un ter
 sudo ./start_cluster.sh 
 ```
 Questo comando farà la build delle varie Docker images e le eseguirà. Lo script sarà interattivo.
+
+Inizializzato il cluster e Nifi, prima dell'esecuzione dell'applicazione Spark è necessario collegarsi a ```localhost:8180/nifi``` ed eseguire l'import del template ed eseguirlo. Il template è situato in ```cluster/src/nifi/flow.xml```
 
 Uscire con CTRL-D dalle varie shell nel seguente ordine
  1) Cluster (Hadoop)
